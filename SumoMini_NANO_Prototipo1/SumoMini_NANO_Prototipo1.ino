@@ -1,12 +1,16 @@
 // ------------------------------------
 // REDBONE - Protótipo Sumô Mini - V0.1
 // ------------------------------------
+// Pre-requisitos:
+// Biblioteca - AsyncSonar by Luis Llamas
+// Biblioteca - IRremote by shirriff, z3t0, ArminJo
+// ------------------------------------
 
 // ##########################################
 // #### Definição das portas utilizadas! ####
 // ##########################################
 
-// #### Motores
+// #### Motores ####
 #define pin_mot_standby 2   // Sinal de Standby dos motores. (desativar) | Na placa: Standby
 #define pin_dir_mot_esq_a 4 // Sinal de direção do motor esquerdo. | Na placa: AN1
 #define pin_dir_mot_esq_b 3 // Sinal de direção do motor esquerdo. | Na placa: AN2
@@ -15,14 +19,14 @@
 #define pin_dir_mot_dir_b 8 // Sinal de ireção do motor direito. | Na placa: BN2
 #define pin_pot_mot_dir 6   // Sinal de PWM do motor direito. | Na placa: PWMB
 
-// #### Receptor de Controle Remoto
+// #### Receptor de Controle Remoto ####
 #define pin_receptor 9 // Sinal do receptor de controle remoto. | Na placa: OUT
 
-// #### Sensores de linha
+// #### Sensores de linha ####
 #define pin_linha_esq A1 // Sinal do sensor de linha esquerdo. | Na placa: 6
 #define pin_linha_dir A0 // Sinal do sensor de linha direito. | Na placa: 1
 
-// #### Sensor de distancia
+// #### Sensor de distancia ####
 #define pin_dist_esq_trig A2 // Sensor de distancia esquerdo. | Na placa: Trig 
 #define pin_dist_esq_echo A3 // Sensor de distancia direito. | Na placa: Echo
 
