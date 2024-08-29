@@ -1,4 +1,7 @@
 // ------------------------------------
+// GNU GENERAL PUBLIC LICENSE
+// Version 3, 29 June 2007
+// ------------------------------------
 // REDBONE - Protótipo Sumô Mini - V0.1
 // ------------------------------------
 // Pre-requisitos:
