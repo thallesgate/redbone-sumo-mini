@@ -141,7 +141,7 @@ void loop() {
 
   if(estado_robo == 2){
     flag_ativar = true;
-    modoTornado();
+    
   }else{
     flag_ativar = false;
   }
@@ -272,22 +272,4 @@ void controlarMotores(int e_pot, int d_pot, bool ativar){
   // Define a potencia do motor direito.
   analogWrite(pin_pot_mot_dir, map(constrain(abs(d_pot), 0, 100), 0, 100, 0, potencia_maxima));
 
-}
-
-void modoTornado(){
-  if(val_sensor_distancia_esq > distancia_segura && val_sensor_distancia_cen > distancia_segura && val_sensor_distancia_esq > distancia_segura){
-
-  }else if(val_sensor_distancia_esq < distancia_segura && val_sensor_distancia_cen < distancia_segura && val_sensor_distancia_esq < distancia_segura){
-    //controlarMotores(1,1,50,flag_ativar);
-  }else if(val_sensor_distancia_esq < distancia_segura && val_sensor_distancia_cen > distancia_segura && val_sensor_distancia_esq > distancia_segura){
-    controlarMotores(0,1,100,flag_ativar);
-  }else if(val_sensor_distancia_esq > distancia_segura && val_sensor_distancia_cen > distancia_segura && val_sensor_distancia_esq < distancia_segura){
-    controlarMotores(1,0,100,flag_ativar);
-  }else if(val_sensor_distancia_esq > distancia_segura && val_sensor_distancia_cen < distancia_segura && val_sensor_distancia_esq < distancia_segura){
-    controlarMotores(1,0,50,flag_ativar);
-  }else if(val_sensor_distancia_esq < distancia_segura && val_sensor_distancia_cen < distancia_segura && val_sensor_distancia_esq > distancia_segura){
-    controlarMotores(0,1,50,flag_ativar);
-  }else if(val_sensor_distancia_esq > distancia_segura && val_sensor_distancia_cen < distancia_segura && val_sensor_distancia_esq > distancia_segura){
-    //controlarMotores(1,1,50,flag_ativar);
-  }
 }
