@@ -17,12 +17,16 @@
 
 // #### LEDs Endereçáveis
 #include <FastLED.h>
-
+#define NUM_LEDS 8
+#define LED_PIN 19
+#define LED_BRIGHTNESS 25 // Brilho dos LEDs - Até 255
+CRGB leds[NUM_LEDS];
+CRGB previousColor = CRGB::Black;
 // #### Memoria Flash
 #include <EEPROM.h> // MEMORIA FLASH PARA SALVAR DADOS DE CALIBRAGEM
-#define EEPROM_SIZE 6
-
+#define EEPROM_SIZE 13
 // #### Giroscópio
+#include <MPU6050.h>
 
 
 // #### Motores
@@ -58,12 +62,20 @@ bool lLineVal = 0;
 bool cLineVal = 0;
 bool rLineVal = 0;
 
-int lLineWhiteCalibrationVal = 0;
-int cLineWhiteCalibrationVal = 0;
-int rLineWhiteCalibrationVal = 0;
-int lLineBlackCalibrationVal = 0;
-int cLineBlackCalibrationVal = 0;
-int rLineBlackCalibrationVal = 0;
+int lLineInnerCalibrationMinVal = 0;
+int lLineInnerCalibrationMaxVal = 0;
+int cLineInnerCalibrationMinVal = 0;
+int cLineInnerCalibrationMaxVal = 0;
+int rLineInnerCalibrationMinVal = 0;
+int rLineInnerCalibrationMaxVal = 0;
+
+int lLineOuterCalibrationMinVal = 0;
+int lLineOuterCalibrationMaxVal = 0;
+int cLineOuterCalibrationMinVal = 0;
+int cLineOuterCalibrationMaxVal = 0;
+int rLineOuterCalibrationMinVal = 0;
+int rLineOuterCalibrationMaxVal = 0;
+
 // #### Sensor de distancia
 #define lDistancePin 33 // Sensor de distancia esquerdo. |
 #define cDistancePin 32 // Sensor de distancia central. |
@@ -77,24 +89,45 @@ bool lDistanceVal = 0;
 bool cDistanceVal = 0;
 bool rDistanceVal = 0;
 
+// #### Geral
+
+
 // #### Comportamento do Robô
-String botMode = "STOP";
-String botStrategy = "MODO_ESTRATEGIA_1"; //MODO_ESTRATEGIA_2 e MODO_ESTRATEGIA_3
+String botMode = "MODO_STOP";
+int botStrategyNum = 1;
 
 void setup() {
+   // Inicializa os LEDs
+  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
+  FastLED.setBrightness(LED_BRIGHTNESS);
+  flashLeds(CRGB::White, 100, 0);
+
   // Inicializa Comunicação SERIAL com o Computador
+  delay(1000);
   Serial.begin(115200);
+  flashLeds(CRGB::Cyan, 100, 0);
 
   // Inicializa Memória EEPROM para guardar variáveis
   EEPROM.begin(EEPROM_SIZE);
+  botStrategyNum = EEPROM.read(0);
 
-  lLineWhiteCalibrationVal = EEPROM.read(0);
-  cLineWhiteCalibrationVal = EEPROM.read(1);
-  rLineWhiteCalibrationVal = EEPROM.read(2);
-  lLineBlackCalibrationVal = EEPROM.read(3);
-  cLineBlackCalibrationVal = EEPROM.read(4);
-  rLineBlackCalibrationVal = EEPROM.read(5);
+  lLineInnerCalibrationMinVal = EEPROM.read(1);
+  lLineInnerCalibrationMaxVal = EEPROM.read(2);
+  cLineInnerCalibrationMinVal = EEPROM.read(3);
+  cLineInnerCalibrationMaxVal = EEPROM.read(4);
+  rLineInnerCalibrationMinVal = EEPROM.read(5);
+  rLineInnerCalibrationMaxVal = EEPROM.read(6);
 
+  lLineOuterCalibrationMinVal = EEPROM.read(7);
+  lLineOuterCalibrationMaxVal = EEPROM.read(8);
+  cLineOuterCalibrationMinVal = EEPROM.read(9);
+  cLineOuterCalibrationMaxVal = EEPROM.read(10);
+  rLineOuterCalibrationMinVal = EEPROM.read(11);
+  rLineOuterCalibrationMaxVal = EEPROM.read(12);
+
+  flashLeds(CRGB::Cyan, 100, 0);
+
+  // Inicializa o controle remoto
   IrReceiver.begin(receiverPin);
   pinMode(lLinePin, INPUT);
   pinMode(cLinePin, INPUT);
@@ -102,7 +135,9 @@ void setup() {
   pinMode(lDistancePin, INPUT);
   pinMode(cDistancePin, INPUT);
   pinMode(rDistancePin, INPUT);
+  flashLeds(CRGB::Cyan, 100, 0);
 
+  // Inicializa os motores
   pinMode(motStandbyPin, OUTPUT);
   pinMode(lMotPinA, OUTPUT);
   pinMode(lMotPinB, OUTPUT);
@@ -110,39 +145,116 @@ void setup() {
   pinMode(rMotPinA, OUTPUT);
   pinMode(rMotPinB, OUTPUT);
   pinMode(rMotPinS, OUTPUT);
+  flashLeds(CRGB::Cyan, 100, 0);
+
+  // Setup Pronto!
+  delay(200);
+  flashLeds(CRGB::Green, 200, 0);
+  delay(200);
+  flashLeds(CRGB::Green, 200, 0);
+  delay(200);
+  flashLeds(CRGB::Green, 200, 0);
+  delay(200);
+  flashLeds(CRGB::Green, 200, 0);
+  delay(200);
 }
 
 void loop() {
   lerControle();
   definirModo();
   if(botMode == "MODO_STOP"){
-    //Stop
+    fillLeds(CRGB::Red); 
+    
   }else if(botMode == "MODO_PRONTO"){
+    fillLeds(CRGB::Orange);
 
   }else if(botMode == "MODO_LUTA"){
-    
-  }else if(botMode == "MODO_CALIBRAGEM_LINHA_FRONTAL"){
-    
-  }else if(botMode == "MODO_CALIBRAGEM_LINHA_MEIO"){
-    
-  }else if(botMode == "MODO_CALIBRAGEM_LINHA_TRASEIRO"){
-    
+    lerSensoresLinha();
+    //fillLeds(CRGB::Green);
+    if(botStrategyNum == 1){
+      flashLeds(CRGB::Cyan, 100, 0);
+      delay(1000);
+
+    }else if(botStrategyNum == 2){
+      //flashLeds(CRGB::Cyan, 100, 0);
+      if(lLineVal){
+        leds[0] = CRGB::Red;
+      }else{
+        leds[0] = CRGB::Black;
+      }
+      if(cLineVal){
+        leds[3] = CRGB::Red;
+        leds[4] = CRGB::Red;
+      }else{
+        leds[3] = CRGB::Black;
+        leds[4] = CRGB::Black;
+      }
+      if(rLineVal){
+        leds[7] = CRGB::Red;
+      }else{
+        leds[7] = CRGB::Black;
+      }
+      FastLED.show();
+      delay(33);
+      //flashLeds(CRGB::Cyan, 100, 0);
+      //delay(1000);
+
+    }else if(botStrategyNum == 3){
+      flashLeds(CRGB::Cyan, 100, 0);
+      flashLeds(CRGB::Cyan, 100, 0);
+      flashLeds(CRGB::Cyan, 100, 0);
+      delay(1000);
+    }
+
+  }else if(botMode == "MODO_CALIBRAGEM_LINHA"){
+    fillLeds(CRGB::Purple);
+    flashLeds(CRGB::Purple, 1000, 0);
+    calibrarSensoresLinha();
+    botMode = "MODO_STOP";
+
   }else if(botMode == "MODO_ESTRATEGIA_1"){
-    
+    fillLeds(CRGB::Cyan);
+    flashLeds(CRGB::Cyan, 350, 0);
+    botStrategyNum = 1;
+    EEPROM.write(0, botStrategyNum);
+    EEPROM.commit();
+    delay(1000);
+    botMode = "MODO_STOP";
+
   }else if(botMode == "MODO_ESTRATEGIA_2"){
-    
+    fillLeds(CRGB::Cyan);
+    flashLeds(CRGB::Cyan, 350, 0);
+    flashLeds(CRGB::Cyan, 350, 0);
+    botStrategyNum = 2;
+    EEPROM.write(0, botStrategyNum);
+    EEPROM.commit();
+    delay(1000);
+    botMode = "MODO_STOP";
+
   }else if(botMode == "MODO_ESTRATEGIA_3"){
-    
+    fillLeds(CRGB::Cyan);
+    flashLeds(CRGB::Cyan, 350, 0);
+    flashLeds(CRGB::Cyan, 350, 0);
+    flashLeds(CRGB::Cyan, 350, 0);
+    botStrategyNum = 3;
+    EEPROM.write(0, botStrategyNum);
+    EEPROM.commit();
+    delay(1000);
+    botMode = "MODO_STOP";
+
   }else if(botMode == "MODO_DEBUG"){
+    fillLeds(CRGB::Cyan);
+    flashLeds(CRGB::White, 50, 0);
+    delay(200);
     lerSensoresDistancia();
     lerSensoresLinha();
     debugSerial();
   }
-  delay(33);
+  //delay(33);
 }
 
 void lerSensoresDistancia(){
-
+  int analogFactor = 16; // Para transformar a resolução 12 bits para 8 bits
   int maxSensorVal = 80;
   int minSafeVal = 1500;
 
@@ -150,9 +262,9 @@ void lerSensoresDistancia(){
   //cDistanceVal = constrain((6762/(analogRead(cDistancePin)-9))-4, 0, maxDistanceVal);
   //rDistanceVal = constrain((6762/(analogRead(rDistancePin)-9))-4, 0, maxDistanceVal);
 
-  lDistanceRawVal = analogRead(lDistancePin);
-  cDistanceRawVal = analogRead(cDistancePin);
-  rDistanceRawVal = analogRead(rDistancePin);
+  lDistanceRawVal = analogRead(lDistancePin) / analogFactor;
+  cDistanceRawVal = analogRead(cDistancePin) / analogFactor;
+  rDistanceRawVal = analogRead(rDistancePin) / analogFactor;
 
 
   if(lDistanceRawVal > minSafeVal){
@@ -172,15 +284,207 @@ void lerSensoresDistancia(){
   }
 }
 void lerSensoresLinha(){
-  lLineRawVal = analogRead(lLinePin);
-  cLineRawVal = analogRead(cLinePin);
-  rLineRawVal = analogRead(rLinePin);
+  int analogFactor = 16; // Para transformar a resolução 12 bits para 8 bits
+  int analogOffset = 10; // Definir uma folga pros valores do sensor
+  
+  bool interiorInverted = false; // Caso o interior seja branco ao inves de preto (invertido)
 
+  lLineRawVal = analogRead(lLinePin) / analogFactor;
+  cLineRawVal = analogRead(cLinePin) / analogFactor;
+  rLineRawVal = analogRead(rLinePin) / analogFactor;
+
+  if (lLineInnerCalibrationMinVal < lLineOuterCalibrationMinVal){
+    interiorInverted = true;
+  }
+
+  if(interiorInverted){
+    if(lLineRawVal < (lLineOuterCalibrationMinVal - analogOffset)){
+      lLineVal = false;
+    }else{
+      lLineVal = true;
+    }
+    if(cLineRawVal < (cLineOuterCalibrationMinVal - analogOffset)){
+      cLineVal = false;
+    }else{
+      cLineVal = true;
+    }
+    if(rLineRawVal < (rLineOuterCalibrationMinVal - analogOffset)){
+      rLineVal = false;
+    }else{
+      rLineVal = true;
+    }
+  }else{
+    if(lLineRawVal > (lLineOuterCalibrationMaxVal + analogOffset)){
+      lLineVal = false;
+    }else{
+      lLineVal = true;
+    }
+    if(cLineRawVal > (cLineOuterCalibrationMaxVal + analogOffset)){
+      cLineVal = false;
+    }else{
+      cLineVal = true;
+    }
+    if(rLineRawVal > (rLineOuterCalibrationMaxVal + analogOffset)){
+      rLineVal = false;
+    }else{
+      rLineVal = true;
+    }
+  }
 }
 
 void calibrarSensoresLinha(){
-  //EEPROM.write(0, ledState);
-  //EEPROM.commit();
+  // #### Calibrar parte interna da arena.
+  // Variáveis para calibrar.
+
+  int readingsCount = 10;
+  
+  int lLineValues[readingsCount];
+  int cLineValues[readingsCount];
+  int rLineValues[readingsCount];
+
+  lLineInnerCalibrationMinVal = 255;
+  lLineInnerCalibrationMaxVal = 0;
+  cLineInnerCalibrationMinVal = 255;
+  cLineInnerCalibrationMaxVal = 0;
+  rLineInnerCalibrationMinVal = 255;
+  rLineInnerCalibrationMaxVal = 0;
+
+  flashLeds(CRGB::Purple, 100, 0);
+  flashLeds(CRGB::Purple, 100, 0);
+  flashLeds(CRGB::Purple, 100, 0);
+
+  delay(5000);
+
+  flashLeds(CRGB::Red, 100, 0);
+
+  // Leitura dos sensores de linha.
+  for(int i = 0; i < readingsCount; i++){
+    lerSensoresLinha();
+
+    lLineValues[i] = lLineRawVal;
+    cLineValues[i] = cLineRawVal;
+    rLineValues[i] = rLineRawVal;
+
+    delay(33);
+  }
+  flashLeds(CRGB::Green, 1000, 0);
+
+  // Definição de mínimo e máximo para calcular offset.
+  for (int i = 0; i < readingsCount; i++) {
+      if (lLineValues[i] >= lLineInnerCalibrationMaxVal) {
+         lLineInnerCalibrationMaxVal = lLineValues[i];
+      }
+      if (lLineValues[i] <= lLineInnerCalibrationMinVal) {
+         lLineInnerCalibrationMinVal = lLineValues[i];
+      }
+      if (cLineValues[i] >= cLineInnerCalibrationMaxVal) {
+         cLineInnerCalibrationMaxVal = cLineValues[i];
+      }
+      if (cLineValues[i] <= cLineInnerCalibrationMinVal) {
+         cLineInnerCalibrationMinVal = cLineValues[i];
+      }
+      if (rLineValues[i] >= rLineInnerCalibrationMaxVal) {
+         rLineInnerCalibrationMaxVal = rLineValues[i];
+      }
+      if (rLineValues[i] <= rLineInnerCalibrationMinVal) {
+         rLineInnerCalibrationMinVal = rLineValues[i];
+      }
+   }
+
+  // Guardar em memória os valores.
+  EEPROM.write(1, constrain(lLineInnerCalibrationMinVal, 0, 255));
+  EEPROM.write(2, constrain(lLineInnerCalibrationMaxVal, 0, 255));
+  EEPROM.write(3, constrain(cLineInnerCalibrationMinVal, 0, 255));
+  EEPROM.write(4, constrain(cLineInnerCalibrationMaxVal, 0, 255));
+  EEPROM.write(5, constrain(rLineInnerCalibrationMinVal, 0, 255));
+  EEPROM.write(6, constrain(rLineInnerCalibrationMaxVal, 0, 255));
+
+  EEPROM.commit();
+
+  lLineOuterCalibrationMinVal = 255;
+  lLineOuterCalibrationMaxVal = 0;
+  cLineOuterCalibrationMinVal = 255;
+  cLineOuterCalibrationMaxVal = 0;
+  rLineOuterCalibrationMinVal = 255;
+  rLineOuterCalibrationMaxVal = 0;
+
+  // #### Calibrar faixa externa da arena!
+  // Aguardar o reposicionamento do robô para os sensores frontais estarem sobre a faixa.
+  flashLeds(CRGB::Purple, 100, 0);
+  flashLeds(CRGB::Purple, 100, 0);
+  flashLeds(CRGB::Purple, 100, 0);
+
+  delay(5000);
+
+  flashLeds(CRGB::Red, 100, 0);
+  // Leitura dos sensores de linha.
+  // Ler sensores da frente primeiro
+  for(int i = 0; i < readingsCount; i++){
+    lerSensoresLinha();
+
+    lLineValues[i] = lLineRawVal;
+    rLineValues[i] = rLineRawVal;
+
+    delay(33);
+  }
+  flashLeds(CRGB::Green, 1000, 0);
+
+  delay(1000);
+
+  flashLeds(CRGB::Purple, 100, 0);
+  flashLeds(CRGB::Purple, 100, 0);
+  flashLeds(CRGB::Purple, 100, 0);
+
+  delay(5000);
+
+  flashLeds(CRGB::Red, 100, 0);
+  // Aguardar para reposicionar o sensor de linha traseiro sobre a faixa.
+  for(int i = 0; i < readingsCount; i++){
+    lerSensoresLinha();
+    cLineValues[i] = cLineRawVal;
+
+    delay(33);
+  }
+
+  flashLeds(CRGB::Green, 1000, 0);
+
+  // Definição de mínimo e máximo para calcular offset.
+  for (int i = 0; i < readingsCount; i++) {
+      if (lLineValues[i] >= lLineOuterCalibrationMaxVal) {
+         lLineOuterCalibrationMaxVal = lLineValues[i];
+      }
+      if (lLineValues[i] <= lLineOuterCalibrationMinVal) {
+         lLineOuterCalibrationMinVal = lLineValues[i];
+      }
+      if (cLineValues[i] >= cLineOuterCalibrationMaxVal) {
+         cLineOuterCalibrationMaxVal = cLineValues[i];
+      }
+      if (cLineValues[i] <= cLineOuterCalibrationMinVal) {
+         cLineOuterCalibrationMinVal = cLineValues[i];
+      }
+      if (rLineValues[i] >= rLineOuterCalibrationMaxVal) {
+         rLineOuterCalibrationMaxVal = rLineValues[i];
+      }
+      if (rLineValues[i] <= rLineOuterCalibrationMinVal) {
+         rLineOuterCalibrationMinVal = rLineValues[i];
+      }
+   }
+
+  // Guardar em memória os valores.
+  EEPROM.write(7, constrain(lLineOuterCalibrationMinVal, 0, 255));
+  EEPROM.write(8, constrain(lLineOuterCalibrationMaxVal, 0, 255));
+  EEPROM.write(9, constrain(cLineOuterCalibrationMinVal, 0, 255));
+  EEPROM.write(10, constrain(cLineOuterCalibrationMaxVal, 0, 255));
+  EEPROM.write(11, constrain(rLineOuterCalibrationMinVal, 0, 255));
+  EEPROM.write(12, constrain(rLineOuterCalibrationMaxVal, 0, 255));
+
+  EEPROM.commit();
+
+  delay(1000);
+  flashLeds(CRGB::Green, 1000, 0);
+  flashLeds(CRGB::Green, 1000, 0);
+  flashLeds(CRGB::Green, 1000, 0);
+  delay(1000);
 }
 void lerControle(){
   // CONTROLE ROBOCORE
@@ -206,40 +510,55 @@ void lerControle(){
     if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
       IrReceiver.resume();
     } else {
+      if (IrReceiver.decodedIRData.command == 0x45) {
+        remoteButton = 1;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x47) {
+        remoteButton = 2;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x40) {
+        remoteButton = 3;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x7) {
+        remoteButton = 4;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x15) {
+        remoteButton = 5;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x9) {
+        remoteButton = 6;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x19) {
+        remoteButton = 7;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0xC) {
+        remoteButton = 8;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x18) {
+        remoteButton = 9;
+      } else if (IrReceiver.decodedIRData.command == 0x5E) {
+        remoteButton = 10;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x8) {
+        remoteButton = 11;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x1C) {
+        remoteButton = 12;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x5A) {
+        remoteButton = 13;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x42) {
+        remoteButton = 14;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x52) {
+        remoteButton = 15;
+        flashLeds(CRGB::White, 33, 1);
+      } else if (IrReceiver.decodedIRData.command == 0x4A) {
+        remoteButton = 16;
+        flashLeds(CRGB::White, 33, 1);
+      }
       IrReceiver.resume();
-    }
-    if (IrReceiver.decodedIRData.command == 0x45) {
-      remoteButton = 1;
-    } else if (IrReceiver.decodedIRData.command == 0x47) {
-      remoteButton = 2;
-    } else if (IrReceiver.decodedIRData.command == 0x40) {
-      remoteButton = 3;
-    } else if (IrReceiver.decodedIRData.command == 0x7) {
-      remoteButton = 4;
-    } else if (IrReceiver.decodedIRData.command == 0x15) {
-      remoteButton = 5;
-    } else if (IrReceiver.decodedIRData.command == 0x9) {
-      remoteButton = 6;
-    } else if (IrReceiver.decodedIRData.command == 0x19) {
-      remoteButton = 7;
-    } else if (IrReceiver.decodedIRData.command == 0xC) {
-      remoteButton = 8;
-    } else if (IrReceiver.decodedIRData.command == 0x18) {
-      remoteButton = 9;
-    } else if (IrReceiver.decodedIRData.command == 0x5E) {
-      remoteButton = 10;
-    } else if (IrReceiver.decodedIRData.command == 0x8) {
-      remoteButton = 11;
-    } else if (IrReceiver.decodedIRData.command == 0x1C) {
-      remoteButton = 12;
-    } else if (IrReceiver.decodedIRData.command == 0x5A) {
-      remoteButton = 13;
-    } else if (IrReceiver.decodedIRData.command == 0x42) {
-      remoteButton = 14;
-    } else if (IrReceiver.decodedIRData.command == 0x52) {
-      remoteButton = 15;
-    } else if (IrReceiver.decodedIRData.command == 0x4A) {
-      remoteButton = 16;
     }
   }
 }
@@ -251,16 +570,12 @@ void definirModo(){
   }else if(remoteButton == 10){
     botMode = "MODO_STOP"; // MODO STOP
   }else if(remoteButton == 14 && botMode == "MODO_STOP"){ //BOTAO G
-    botMode = "MODO_CALIBRAGEM_LINHA_FRONTAL"; // MODO CALIBRAGEM SENSORES LINHA FRONTAIS
-  }else if(remoteButton == 15 && botMode == "MODO_STOP"){ //BOTAO H
-    botMode = "MODO_CALIBRAGEM_LINHA_MEIO"; // MODO CALIBRAGEM SENSORES LINHA MEIO
-  }else if(remoteButton == 16 && botMode == "MODO_STOP"){ //BOTAO I
-    botMode = "MODO_CALIBRAGEM_LINHA_TRASEIRO"; // MODO CALIBRAGEM SENSORES LINHA TRASEIRO
+    botMode = "MODO_CALIBRAGEM_LINHA"; // MODO CALIBRAGEM SENSORES LINHA
   }else if(remoteButton == 11 && botMode == "MODO_STOP"){ //BOTAO D
     botMode = "MODO_ESTRATEGIA_1"; // ESTRATEGIA 1
-  }else if(remoteButton == 13 && botMode == "MODO_STOP"){ //BOTAO E
+  }else if(remoteButton == 12 && botMode == "MODO_STOP"){ //BOTAO E
     botMode = "MODO_ESTRATEGIA_2"; // ESTRATEGIA 2
-  }else if(remoteButton == 14 && botMode == "MODO_STOP"){ //BOTAO F
+  }else if(remoteButton == 13 && botMode == "MODO_STOP"){ //BOTAO F
     botMode = "MODO_ESTRATEGIA_3"; // ESTRATEGIA 3
   }else if(remoteButton == 2 && botMode == "MODO_STOP"){ //BOTAO RAIO
     botMode = "MODO_DEBUG"; // DEBUG MODE
@@ -304,27 +619,85 @@ void controlarMotores(int lPot, int rPot, bool enable){
 
 }
 void debugSerial(){
-  Serial.print("DistanciaL:");
+  Serial.print("DL:");
   Serial.print(lDistanceRawVal);
   Serial.print(",");
-  Serial.print("DistanciaC:");
+  Serial.print("DC:");
   Serial.print(cDistanceRawVal);
   Serial.print(",");
-  Serial.print("DistanciaD:");
+  Serial.print("DD:");
   Serial.print(rDistanceRawVal);
   Serial.print(",");
-  Serial.print("LinhaL:");
+  Serial.print("LL:");
   Serial.print(lLineRawVal);
   Serial.print(",");
-  Serial.print("LinhaC:");
+  Serial.print("LC:");
   Serial.print(cLineRawVal);
   Serial.print(",");
-  Serial.print("LinhaD:");
+  Serial.print("LD:");
   Serial.print(rLineRawVal);
   Serial.print(",");
-  Serial.print("BotaoControle:");
+  Serial.print("BControle:");
   Serial.print(remoteButton);
   Serial.print(",");
   Serial.print("Modo:");
-  Serial.println(botMode);
+  Serial.print(botMode);
+  Serial.print(",");
+  Serial.print("LiMedia:");
+  Serial.print(lLineInnerCalibrationMinVal);
+  Serial.print(",");
+  Serial.print("CiMedia:");
+  Serial.print(cLineInnerCalibrationMinVal);
+  Serial.print(",");
+  Serial.print("RiMedia:");
+  Serial.print(rLineInnerCalibrationMinVal);
+  Serial.print(",");
+  Serial.print("LoMedia:");
+  Serial.print(lLineOuterCalibrationMinVal);
+  Serial.print(",");
+  Serial.print("CoMedia:");
+  Serial.print(cLineOuterCalibrationMinVal);
+  Serial.print(",");
+  Serial.print("RoMedia:");
+  Serial.print(rLineOuterCalibrationMinVal);
+  Serial.print(",");
+  Serial.print("LiOffset:");
+  Serial.print(lLineInnerCalibrationMaxVal);
+  Serial.print(",");
+  Serial.print("CiOffset:");
+  Serial.print(cLineInnerCalibrationMaxVal);
+  Serial.print(",");
+  Serial.print("RiOffset:");
+  Serial.print(rLineInnerCalibrationMaxVal);
+  Serial.print(",");
+  Serial.print("LoOffset:");
+  Serial.print(lLineOuterCalibrationMaxVal);
+  Serial.print(",");
+  Serial.print("CoOffset:");
+  Serial.print(cLineOuterCalibrationMaxVal);
+  Serial.print(",");
+  Serial.print("RoOffset:");
+  Serial.println(rLineOuterCalibrationMaxVal);
+}
+void fillLeds(CRGB color)
+{
+    for(int i = 0; i < NUM_LEDS; i++) {
+        leds[i] = color;
+    }
+    FastLED.show();
+    previousColor = color;
+}
+void flashLeds(CRGB color, int wait, bool usePreviousColor)
+{
+  CRGB oldColor = previousColor;
+  fillLeds(color);
+  FastLED.show();
+  delay(wait);
+  if(usePreviousColor){
+    fillLeds(oldColor);
+  }else{
+    fillLeds(CRGB::Black);
+  }
+  FastLED.show();
+  delay(wait);
 }
