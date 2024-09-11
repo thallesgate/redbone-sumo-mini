@@ -15,6 +15,16 @@
 // #### Definição de Portas e Variaveis! ####
 // ##########################################
 
+// #### LEDs Endereçáveis
+#include <FastLED.h>
+
+// #### Memoria Flash
+#include <EEPROM.h> // MEMORIA FLASH PARA SALVAR DADOS DE CALIBRAGEM
+#define EEPROM_SIZE 6
+
+// #### Giroscópio
+
+
 // #### Motores
 #define motStandbyPin 4 // Sinal de Standby dos motores. (desativar) | Na placa: Standby
 #define lMotPinA 0 // Sinal de direção do motor esquerdo. | Na placa: AN1
@@ -28,29 +38,63 @@
 #include <IRremote.hpp>
 #define receiverPin 13 // Sinal do receptor de controle remoto. | Na placa: OUT
 
-int botaoPressionado = 0;
+#define DECODE_NEC
+#define DECODE_SONY
+
+int remoteButton = 0;
 
 // #### Sensores de linha
 #define lLinePin 25 // Sinal do sensor de linha esquerdo frontal. |
 #define lLineBackPin 14// Sinal do sensor de linha esquerdo traseiro. | NAO CONECTADO
-#define cLinePin 26 // Sinal do sensor de linha central traseiro. |
-#define rLinePin 27// Sinal do sensor de linha direito frontal. |
+#define cLinePin 27 // Sinal do sensor de linha central traseiro. |
+#define rLinePin 26// Sinal do sensor de linha direito frontal. |
 #define rLineBackPin 12// Sinal do sensor de linha esquerdo traseiro. | NAO CONECTADO
 
-int lLineVal = 0;
-int cLineVal = 0;
-int rLineVal = 0;
+int lLineRawVal = 0;
+int cLineRawVal = 0;
+int rLineRawVal = 0;
 
+bool lLineVal = 0;
+bool cLineVal = 0;
+bool rLineVal = 0;
+
+int lLineWhiteCalibrationVal = 0;
+int cLineWhiteCalibrationVal = 0;
+int rLineWhiteCalibrationVal = 0;
+int lLineBlackCalibrationVal = 0;
+int cLineBlackCalibrationVal = 0;
+int rLineBlackCalibrationVal = 0;
 // #### Sensor de distancia
-#define lDistancePin 34 // Sensor de distancia esquerdo. |
+#define lDistancePin 33 // Sensor de distancia esquerdo. |
 #define cDistancePin 32 // Sensor de distancia central. |
-#define rDistancePin 33 // Sensor de distancia direito. |
+#define rDistancePin 34 // Sensor de distancia direito. |
 
-int lDistanceVal = 0;
-int cDistanceVal = 0;
-int rDistanceVal = 0;
+int lDistanceRawVal = 0;
+int cDistanceRawVal = 0;
+int rDistanceRawVal = 0;
+
+bool lDistanceVal = 0;
+bool cDistanceVal = 0;
+bool rDistanceVal = 0;
+
+// #### Comportamento do Robô
+String botMode = "STOP";
+String botStrategy = "MODO_ESTRATEGIA_1"; //MODO_ESTRATEGIA_2 e MODO_ESTRATEGIA_3
+
 void setup() {
+  // Inicializa Comunicação SERIAL com o Computador
   Serial.begin(115200);
+
+  // Inicializa Memória EEPROM para guardar variáveis
+  EEPROM.begin(EEPROM_SIZE);
+
+  lLineWhiteCalibrationVal = EEPROM.read(0);
+  cLineWhiteCalibrationVal = EEPROM.read(1);
+  rLineWhiteCalibrationVal = EEPROM.read(2);
+  lLineBlackCalibrationVal = EEPROM.read(3);
+  cLineBlackCalibrationVal = EEPROM.read(4);
+  rLineBlackCalibrationVal = EEPROM.read(5);
+
   IrReceiver.begin(receiverPin);
   pinMode(lLinePin, INPUT);
   pinMode(cLinePin, INPUT);
@@ -69,50 +113,74 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   lerControle();
-  //botaoPressionado
-  lerSensoresDistancia();
-  lerSensoresLinha();
+  definirModo();
+  if(botMode == "MODO_STOP"){
+    //Stop
+  }else if(botMode == "MODO_PRONTO"){
 
-  Serial.print("DistanciaL:");
-  Serial.print(lDistanceVal);
-  Serial.print(",");
-  Serial.print("DistanciaC:");
-  Serial.print(cDistanceVal);
-  Serial.print(",");
-  Serial.print("DistanciaD:");
-  Serial.print(rDistanceVal);
-  Serial.print(",");
-  Serial.print("LinhaL:");
-  Serial.print(lLineVal);
-  Serial.print(",");
-  Serial.print("LinhaC:");
-  Serial.print(cLineVal);
-  Serial.print(",");
-  Serial.print("LinhaD:");
-  Serial.println(rLineVal);
-  delay(100);
+  }else if(botMode == "MODO_LUTA"){
+    
+  }else if(botMode == "MODO_CALIBRAGEM_LINHA_FRONTAL"){
+    
+  }else if(botMode == "MODO_CALIBRAGEM_LINHA_MEIO"){
+    
+  }else if(botMode == "MODO_CALIBRAGEM_LINHA_TRASEIRO"){
+    
+  }else if(botMode == "MODO_ESTRATEGIA_1"){
+    
+  }else if(botMode == "MODO_ESTRATEGIA_2"){
+    
+  }else if(botMode == "MODO_ESTRATEGIA_3"){
+    
+  }else if(botMode == "MODO_DEBUG"){
+    lerSensoresDistancia();
+    lerSensoresLinha();
+    debugSerial();
+  }
+  delay(33);
 }
+
 void lerSensoresDistancia(){
 
-int maxDistanceVal = 80;
-int minSafeDistance = 10;
+  int maxSensorVal = 80;
+  int minSafeVal = 1500;
 
-//lDistanceVal = constrain((6762/(analogRead(lDistancePin)-9))-4, 0, maxDistanceVal);
-//cDistanceVal = constrain((6762/(analogRead(cDistancePin)-9))-4, 0, maxDistanceVal);
-//rDistanceVal = constrain((6762/(analogRead(rDistancePin)-9))-4, 0, maxDistanceVal);
+  //lDistanceVal = constrain((6762/(analogRead(lDistancePin)-9))-4, 0, maxDistanceVal);
+  //cDistanceVal = constrain((6762/(analogRead(cDistancePin)-9))-4, 0, maxDistanceVal);
+  //rDistanceVal = constrain((6762/(analogRead(rDistancePin)-9))-4, 0, maxDistanceVal);
 
-lDistanceVal = analogRead(lDistancePin);
-cDistanceVal = analogRead(cDistancePin);
-rDistanceVal = analogRead(rDistancePin);
+  lDistanceRawVal = analogRead(lDistancePin);
+  cDistanceRawVal = analogRead(cDistancePin);
+  rDistanceRawVal = analogRead(rDistancePin);
+
+
+  if(lDistanceRawVal > minSafeVal){
+    lDistanceVal = 1;
+  }else{
+    lDistanceVal = 0;
+  }
+  if(cDistanceRawVal > minSafeVal){
+    cDistanceVal = 1;
+  }else{
+    cDistanceVal = 0;
+  }
+  if(rDistanceRawVal > minSafeVal){
+    rDistanceVal = 1;
+  }else{
+    rDistanceVal = 0;
+  }
+}
+void lerSensoresLinha(){
+  lLineRawVal = analogRead(lLinePin);
+  cLineRawVal = analogRead(cLinePin);
+  rLineRawVal = analogRead(rLinePin);
 
 }
 
-void lerSensoresLinha(){
-lLineVal = analogRead(lLinePin);
-cLineVal = analogRead(cLinePin);
-rLineVal = analogRead(rLinePin);
+void calibrarSensoresLinha(){
+  //EEPROM.write(0, ledState);
+  //EEPROM.commit();
 }
 void lerControle(){
   // CONTROLE ROBOCORE
@@ -133,48 +201,70 @@ void lerControle(){
   // 15 H - 0x52
   // 16 I - 0x4A
 
-
+  remoteButton = 0;
   if(IrReceiver.decode()){
     if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
+      IrReceiver.resume();
     } else {
-        IrReceiver.resume(); // Early enable receiving of the next IR frame
+      IrReceiver.resume();
     }
-
     if (IrReceiver.decodedIRData.command == 0x45) {
-      botaoPressionado = 1;
+      remoteButton = 1;
     } else if (IrReceiver.decodedIRData.command == 0x47) {
-      botaoPressionado = 2;
+      remoteButton = 2;
     } else if (IrReceiver.decodedIRData.command == 0x40) {
-      botaoPressionado = 3;
+      remoteButton = 3;
     } else if (IrReceiver.decodedIRData.command == 0x7) {
-      botaoPressionado = 4;
+      remoteButton = 4;
     } else if (IrReceiver.decodedIRData.command == 0x15) {
-      botaoPressionado = 5;
+      remoteButton = 5;
     } else if (IrReceiver.decodedIRData.command == 0x9) {
-      botaoPressionado = 6;
+      remoteButton = 6;
     } else if (IrReceiver.decodedIRData.command == 0x19) {
-      botaoPressionado = 7;
+      remoteButton = 7;
     } else if (IrReceiver.decodedIRData.command == 0xC) {
-      botaoPressionado = 8;
+      remoteButton = 8;
     } else if (IrReceiver.decodedIRData.command == 0x18) {
-      botaoPressionado = 9;
+      remoteButton = 9;
     } else if (IrReceiver.decodedIRData.command == 0x5E) {
-      botaoPressionado = 10;
+      remoteButton = 10;
     } else if (IrReceiver.decodedIRData.command == 0x8) {
-      botaoPressionado = 11;
+      remoteButton = 11;
     } else if (IrReceiver.decodedIRData.command == 0x1C) {
-      botaoPressionado = 12;
+      remoteButton = 12;
     } else if (IrReceiver.decodedIRData.command == 0x5A) {
-      botaoPressionado = 13;
+      remoteButton = 13;
     } else if (IrReceiver.decodedIRData.command == 0x42) {
-      botaoPressionado = 14;
+      remoteButton = 14;
     } else if (IrReceiver.decodedIRData.command == 0x52) {
-      botaoPressionado = 15;
+      remoteButton = 15;
     } else if (IrReceiver.decodedIRData.command == 0x4A) {
-      botaoPressionado = 16;
+      remoteButton = 16;
     }
   }
-
+}
+void definirModo(){
+  if(remoteButton == 8 && botMode == "MODO_STOP"){
+    botMode = "MODO_PRONTO"; // MODO READY
+  }else if(remoteButton == 9 && botMode == "MODO_PRONTO"){
+    botMode = "MODO_LUTA"; // MODO LUTA
+  }else if(remoteButton == 10){
+    botMode = "MODO_STOP"; // MODO STOP
+  }else if(remoteButton == 14 && botMode == "MODO_STOP"){ //BOTAO G
+    botMode = "MODO_CALIBRAGEM_LINHA_FRONTAL"; // MODO CALIBRAGEM SENSORES LINHA FRONTAIS
+  }else if(remoteButton == 15 && botMode == "MODO_STOP"){ //BOTAO H
+    botMode = "MODO_CALIBRAGEM_LINHA_MEIO"; // MODO CALIBRAGEM SENSORES LINHA MEIO
+  }else if(remoteButton == 16 && botMode == "MODO_STOP"){ //BOTAO I
+    botMode = "MODO_CALIBRAGEM_LINHA_TRASEIRO"; // MODO CALIBRAGEM SENSORES LINHA TRASEIRO
+  }else if(remoteButton == 11 && botMode == "MODO_STOP"){ //BOTAO D
+    botMode = "MODO_ESTRATEGIA_1"; // ESTRATEGIA 1
+  }else if(remoteButton == 13 && botMode == "MODO_STOP"){ //BOTAO E
+    botMode = "MODO_ESTRATEGIA_2"; // ESTRATEGIA 2
+  }else if(remoteButton == 14 && botMode == "MODO_STOP"){ //BOTAO F
+    botMode = "MODO_ESTRATEGIA_3"; // ESTRATEGIA 3
+  }else if(remoteButton == 2 && botMode == "MODO_STOP"){ //BOTAO RAIO
+    botMode = "MODO_DEBUG"; // DEBUG MODE
+  }
 }
 void controlarMotores(int lPot, int rPot, bool enable){
   // e_pot = Potencia do motor esquerdo. Valor de -100 a 100
@@ -212,4 +302,29 @@ void controlarMotores(int lPot, int rPot, bool enable){
   // Define a potencia do motor direito.
   analogWrite(rMotPinS, map(constrain(abs(rPot), 0, 100), 0, 100, 0, maxPower));
 
+}
+void debugSerial(){
+  Serial.print("DistanciaL:");
+  Serial.print(lDistanceRawVal);
+  Serial.print(",");
+  Serial.print("DistanciaC:");
+  Serial.print(cDistanceRawVal);
+  Serial.print(",");
+  Serial.print("DistanciaD:");
+  Serial.print(rDistanceRawVal);
+  Serial.print(",");
+  Serial.print("LinhaL:");
+  Serial.print(lLineRawVal);
+  Serial.print(",");
+  Serial.print("LinhaC:");
+  Serial.print(cLineRawVal);
+  Serial.print(",");
+  Serial.print("LinhaD:");
+  Serial.print(rLineRawVal);
+  Serial.print(",");
+  Serial.print("BotaoControle:");
+  Serial.print(remoteButton);
+  Serial.print(",");
+  Serial.print("Modo:");
+  Serial.println(botMode);
 }
