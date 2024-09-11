@@ -49,8 +49,8 @@ int rLineVal = 0;
 int lDistanceVal = 0;
 int cDistanceVal = 0;
 int rDistanceVal = 0;
-
 void setup() {
+  Serial.begin(115200);
   IrReceiver.begin(receiverPin);
   pinMode(lLinePin, INPUT);
   pinMode(cLinePin, INPUT);
@@ -75,22 +75,22 @@ void loop() {
   lerSensoresDistancia();
   lerSensoresLinha();
 
-  Serial.print("Distancia L:");
+  Serial.print("DistanciaL:");
   Serial.print(lDistanceVal);
   Serial.print(",");
-  Serial.print("Distancia C:");
+  Serial.print("DistanciaC:");
   Serial.print(cDistanceVal);
   Serial.print(",");
-  Serial.print("Distancia D:");
+  Serial.print("DistanciaD:");
   Serial.print(rDistanceVal);
   Serial.print(",");
-  Serial.print("Linha L:");
+  Serial.print("LinhaL:");
   Serial.print(lLineVal);
   Serial.print(",");
-  Serial.print("Linha C:");
+  Serial.print("LinhaC:");
   Serial.print(cLineVal);
   Serial.print(",");
-  Serial.print("Linha D:");
+  Serial.print("LinhaD:");
   Serial.println(rLineVal);
   delay(100);
 }
@@ -99,10 +99,16 @@ void lerSensoresDistancia(){
 int maxDistanceVal = 80;
 int minSafeDistance = 10;
 
-lDistanceVal = constrain((6762/(analogRead(lDistancePin)-9))-4, 0, maxDistanceVal);
-cDistanceVal = constrain((6762/(analogRead(cDistancePin)-9))-4, 0, maxDistanceVal);
-rDistanceVal = constrain((6762/(analogRead(rDistancePin)-9))-4, 0, maxDistanceVal);
+//lDistanceVal = constrain((6762/(analogRead(lDistancePin)-9))-4, 0, maxDistanceVal);
+//cDistanceVal = constrain((6762/(analogRead(cDistancePin)-9))-4, 0, maxDistanceVal);
+//rDistanceVal = constrain((6762/(analogRead(rDistancePin)-9))-4, 0, maxDistanceVal);
+
+lDistanceVal = analogRead(lDistancePin);
+cDistanceVal = analogRead(cDistancePin);
+rDistanceVal = analogRead(rDistancePin);
+
 }
+
 void lerSensoresLinha(){
 lLineVal = analogRead(lLinePin);
 cLineVal = analogRead(cLinePin);
