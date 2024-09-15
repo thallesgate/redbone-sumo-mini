@@ -94,6 +94,7 @@ bool rDistanceVal = 0;
 
 // #### Comportamento do Robô
 String botMode = "MODO_STOP";
+bool motorEnable = 0;
 int botStrategyNum = 1;
 
 void setup() {
@@ -164,40 +165,51 @@ void loop() {
   definirModo();
   if(botMode == "MODO_STOP"){
     fillLeds(CRGB::Red); 
+    motorEnable = false;
+    controlarMotores(0,0,motorEnable);
     
   }else if(botMode == "MODO_PRONTO"){
     fillLeds(CRGB::Orange);
+    motorEnable = false;
+    controlarMotores(0,0,motorEnable);
 
   }else if(botMode == "MODO_LUTA"){
+    motorEnable = true;
     lerSensoresLinha();
+    lerSensoresDistancia();
     //fillLeds(CRGB::Green);
     if(botStrategyNum == 1){
-      flashLeds(CRGB::Cyan, 100, 0);
-      delay(1000);
+      flashLeds(CRGB::Cyan, 5, 0);
+      //delay(1000);
+      if(lLineVal == 0 and rLineVal == 0){
+        controlarMotores(70,70,motorEnable);
+      }else if (lLineVal == 1 and rLineVal == 1){
+        controlarMotores(-50, -50, motorEnable);
+        delay(300);
+      }else if (lLineVal == 1){
+        controlarMotores(230,40,motorEnable);
+      }else if (rLineVal == 1){
+        controlarMotores(40,230,motorEnable);
+      }
+      
 
     }else if(botStrategyNum == 2){
-      //flashLeds(CRGB::Cyan, 100, 0);
-      if(lLineVal){
-        leds[0] = CRGB::Red;
-      }else{
-        leds[0] = CRGB::Black;
+      flashLeds(CRGB::Purple, 5, 0);
+      if(lDistanceVal == 1 && cDistanceVal == 1 && rDistanceVal == 1){
+        controlarMotores(140,140,motorEnable);
+      }else if (lDistanceVal == 1 && cDistanceVal == 1 && rDistanceVal == 0){
+        controlarMotores(-70,70,motorEnable);
+      }else if (lDistanceVal == 0 && cDistanceVal == 1 && rDistanceVal == 1){
+        controlarMotores(70,-70,motorEnable);
+      }else if (lDistanceVal == 0 && cDistanceVal == 0 && rDistanceVal == 1){
+        controlarMotores(140,-140,motorEnable);
+      }else if (lDistanceVal == 1 && cDistanceVal == 0 && rDistanceVal == 0){
+        controlarMotores(-140,140,motorEnable);
+      }else if (lDistanceVal == 0 && cDistanceVal == 0 && rDistanceVal == 0){
+        controlarMotores(0,0,motorEnable);
+      }else if (lDistanceVal == 0 && cDistanceVal == 1 && rDistanceVal == 0){
+        controlarMotores(70,70,motorEnable);
       }
-      if(cLineVal){
-        leds[3] = CRGB::Red;
-        leds[4] = CRGB::Red;
-      }else{
-        leds[3] = CRGB::Black;
-        leds[4] = CRGB::Black;
-      }
-      if(rLineVal){
-        leds[7] = CRGB::Red;
-      }else{
-        leds[7] = CRGB::Black;
-      }
-      FastLED.show();
-      delay(33);
-      //flashLeds(CRGB::Cyan, 100, 0);
-      //delay(1000);
 
     }else if(botStrategyNum == 3){
       flashLeds(CRGB::Cyan, 100, 0);
@@ -210,6 +222,126 @@ void loop() {
     fillLeds(CRGB::Purple);
     flashLeds(CRGB::Purple, 1000, 0);
     calibrarSensoresLinha();
+    botMode = "MODO_STOP";
+
+  }else if(botMode == "MODO_DEBUG_SENSORES"){
+    lerSensoresDistancia();
+    lerSensoresLinha();
+    //flashLeds(CRGB::Cyan, 100, 0);
+    if(lLineVal){
+      leds[0] = CRGB::White;
+    }else{
+      leds[0] = CRGB::Black;
+    }
+    if(cLineVal){
+      leds[1] = CRGB::White;
+      leds[2] = CRGB::White;
+    }else{
+      leds[1] = CRGB::Black;
+      leds[2] = CRGB::Black;
+    }
+    if(rLineVal){
+      leds[3] = CRGB::White;
+    }else{
+      leds[3] = CRGB::Black;
+    }
+
+    if(lDistanceVal){
+      leds[4] = CRGB::Red;
+    }else{
+      leds[4] = CRGB::Black;
+    }
+    if(cDistanceVal){
+      leds[5] = CRGB::Red;
+      leds[6] = CRGB::Red;
+    }else{
+      leds[5] = CRGB::Black;
+      leds[6] = CRGB::Black;
+    }
+    if(rDistanceVal){
+      leds[7] = CRGB::Red;
+    }else{
+      leds[7] = CRGB::Black;
+    }
+
+    
+
+    FastLED.show();
+    delay(33);
+    //flashLeds(CRGB::Cyan, 100, 0);
+    //delay(1000);
+  }else if(botMode == "MODO_DEBUG_MOTORES"){
+    motorEnable = true;
+    flashLeds(CRGB::Purple, 100, 0);
+
+    leds[0] = CRGB::Red;
+    controlarMotores(0,0,motorEnable);
+    FastLED.show();
+    delay(1000);
+    leds[0] = CRGB::Green;
+    FastLED.show();
+    controlarMotores(0,0,motorEnable);
+    
+    leds[1] = CRGB::Red;
+    controlarMotores(50,50,motorEnable);
+    FastLED.show();
+    delay(1000);
+    leds[1] = CRGB::Green;
+    FastLED.show();
+    controlarMotores(0,0,motorEnable);
+    
+    leds[2] = CRGB::Red;
+    controlarMotores(-50,-50,motorEnable);
+    FastLED.show();
+    delay(1000);
+    leds[2] = CRGB::Green;
+    FastLED.show();
+    controlarMotores(0,0,motorEnable);
+    
+    leds[3] = CRGB::Red;
+    controlarMotores(100,0,motorEnable);
+    FastLED.show();
+    delay(1000);
+    leds[3] = CRGB::Green;
+    FastLED.show();
+    controlarMotores(0,0,motorEnable);
+    
+    leds[4] = CRGB::Red;
+    controlarMotores(0,100,motorEnable);
+    FastLED.show();
+    delay(1000);
+    leds[4] = CRGB::Green;
+    FastLED.show();
+    controlarMotores(0,0,motorEnable);
+    
+    leds[5] = CRGB::Red;
+    controlarMotores(-100,100,motorEnable);
+    FastLED.show();
+    delay(1000);
+    leds[5] = CRGB::Green;
+    FastLED.show();
+    controlarMotores(0,0,motorEnable);
+    
+    leds[6] = CRGB::Red;
+    controlarMotores(100,-100,motorEnable);
+    FastLED.show();
+    delay(1000);
+    leds[6] = CRGB::Green;
+    FastLED.show();
+    controlarMotores(0,0,motorEnable);
+    
+    leds[7] = CRGB::Red;
+    controlarMotores(230,230,motorEnable);
+    FastLED.show();
+    delay(300);
+    leds[7] = CRGB::Green;
+    FastLED.show();
+    controlarMotores(0,0,motorEnable);
+
+    flashLeds(CRGB::Green, 500, 0);
+    flashLeds(CRGB::Green, 500, 0);
+    flashLeds(CRGB::Green, 500, 0);
+
     botMode = "MODO_STOP";
 
   }else if(botMode == "MODO_ESTRATEGIA_1"){
@@ -242,10 +374,9 @@ void loop() {
     delay(1000);
     botMode = "MODO_STOP";
 
-  }else if(botMode == "MODO_DEBUG"){
+  }else if(botMode == "MODO_DEBUG_SERIAL"){
     fillLeds(CRGB::Cyan);
     flashLeds(CRGB::White, 50, 0);
-    delay(200);
     lerSensoresDistancia();
     lerSensoresLinha();
     debugSerial();
@@ -255,8 +386,7 @@ void loop() {
 
 void lerSensoresDistancia(){
   int analogFactor = 16; // Para transformar a resolução 12 bits para 8 bits
-  int maxSensorVal = 80;
-  int minSafeVal = 1500;
+  int minSafeVal = 93;
 
   //lDistanceVal = constrain((6762/(analogRead(lDistancePin)-9))-4, 0, maxDistanceVal);
   //cDistanceVal = constrain((6762/(analogRead(cDistancePin)-9))-4, 0, maxDistanceVal);
@@ -285,7 +415,7 @@ void lerSensoresDistancia(){
 }
 void lerSensoresLinha(){
   int analogFactor = 16; // Para transformar a resolução 12 bits para 8 bits
-  int analogOffset = 10; // Definir uma folga pros valores do sensor
+  int analogOffset = 5; // Definir uma folga pros valores do sensor
   
   bool interiorInverted = false; // Caso o interior seja branco ao inves de preto (invertido)
 
@@ -336,7 +466,7 @@ void calibrarSensoresLinha(){
   // #### Calibrar parte interna da arena.
   // Variáveis para calibrar.
 
-  int readingsCount = 10;
+  int readingsCount = 20;
   
   int lLineValues[readingsCount];
   int cLineValues[readingsCount];
@@ -479,12 +609,9 @@ void calibrarSensoresLinha(){
   EEPROM.write(12, constrain(rLineOuterCalibrationMaxVal, 0, 255));
 
   EEPROM.commit();
-
-  delay(1000);
-  flashLeds(CRGB::Green, 1000, 0);
-  flashLeds(CRGB::Green, 1000, 0);
-  flashLeds(CRGB::Green, 1000, 0);
-  delay(1000);
+  flashLeds(CRGB::Green, 500, 0);
+  flashLeds(CRGB::Green, 500, 0);
+  flashLeds(CRGB::Green, 500, 0);
 }
 void lerControle(){
   // CONTROLE ROBOCORE
@@ -578,7 +705,11 @@ void definirModo(){
   }else if(remoteButton == 13 && botMode == "MODO_STOP"){ //BOTAO F
     botMode = "MODO_ESTRATEGIA_3"; // ESTRATEGIA 3
   }else if(remoteButton == 2 && botMode == "MODO_STOP"){ //BOTAO RAIO
-    botMode = "MODO_DEBUG"; // DEBUG MODE
+    botMode = "MODO_DEBUG_SERIAL"; // DEBUG MODE
+  }else if(remoteButton == 15 && botMode == "MODO_STOP"){
+    botMode = "MODO_DEBUG_SENSORES";
+  }else if(remoteButton == 16 && botMode == "MODO_STOP"){
+    botMode = "MODO_DEBUG_MOTORES";
   }
 }
 void controlarMotores(int lPot, int rPot, bool enable){
@@ -643,22 +774,22 @@ void debugSerial(){
   Serial.print("Modo:");
   Serial.print(botMode);
   Serial.print(",");
-  Serial.print("LiMedia:");
+  Serial.print("l_I_Min:");
   Serial.print(lLineInnerCalibrationMinVal);
   Serial.print(",");
-  Serial.print("CiMedia:");
+  Serial.print("c_I_Min:");
   Serial.print(cLineInnerCalibrationMinVal);
   Serial.print(",");
-  Serial.print("RiMedia:");
+  Serial.print("r_I_Min:");
   Serial.print(rLineInnerCalibrationMinVal);
   Serial.print(",");
-  Serial.print("LoMedia:");
+  Serial.print("l_O_Min:");
   Serial.print(lLineOuterCalibrationMinVal);
   Serial.print(",");
-  Serial.print("CoMedia:");
+  Serial.print("c_O_Min:");
   Serial.print(cLineOuterCalibrationMinVal);
   Serial.print(",");
-  Serial.print("RoMedia:");
+  Serial.print("r_O:");
   Serial.print(rLineOuterCalibrationMinVal);
   Serial.print(",");
   Serial.print("LiOffset:");
