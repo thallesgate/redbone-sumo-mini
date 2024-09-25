@@ -65,6 +65,14 @@ String botMode = "MODO_STOP";
 bool motorEnable = 0;
 int botStrategyNum = 1;
 
+int idleSpeed = 30;     // Velocidade padrão sem deteccao
+int turnSpeed = 80;     // Velocidade de curva padrao
+int fastTurnSpeed = 100;
+int lineTurnSpeed = 125; // Velocidade de curva ao detectar a linha
+int attackSpeed = 150;
+int lastDetection = 5;  // Ultima deteccao de inimigo
+int durationTime = 100; // Duração padrão de movimento
+
 void setup() {
    // Inicializa os LEDs
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
@@ -135,22 +143,52 @@ void loop() {
     motorEnable = true;
     lerSensoresLinha();
     lerSensoresDistancia();
+    fillLeds(CRGB::Cyan);
     //fillLeds(CRGB::Green);
     if(botStrategyNum == 1){
-      flashLeds(CRGB::Cyan, 5, 0);
       //delay(1000);
       if(lLineVal == 0 and rLineVal == 0){
-        controlarMotores(70,70,motorEnable);
+        if(lDistanceVal == 1 && cDistanceVal == 1 && rDistanceVal == 1){
+          controlarMotores(attackSpeed, attackSpeed, motorEnable);
+        }else if(lDistanceVal == 0 && cDistanceVal == 1 && rDistanceVal == 1){
+          controlarMotores(turnSpeed, turnSpeed/2, motorEnable);
+        }else if(lDistanceVal == 0 && cDistanceVal == 0 && rDistanceVal == 0){
+          controlarMotores(idleSpeed, idleSpeed, motorEnable);
+        }else if(lDistanceVal == 1 && cDistanceVal == 1 && rDistanceVal == 0){
+          controlarMotores(-turnSpeed/2, turnSpeed, motorEnable);
+        }else if(lDistanceVal == 0 && cDistanceVal == 0 && rDistanceVal == 0){
+          controlarMotores(idleSpeed, idleSpeed, motorEnable);
+        }else if(lDistanceVal == 0 && cDistanceVal == 0 && rDistanceVal == 1){
+          controlarMotores(fastTurnSpeed, -fastTurnSpeed, motorEnable);
+        }else if(lDistanceVal == 1 && cDistanceVal == 0 && rDistanceVal == 0){
+          controlarMotores(-fastTurnSpeed, fastTurnSpeed, motorEnable);
+        }else if(lDistanceVal == 0 && cDistanceVal == 1 && rDistanceVal == 0){
+          controlarMotores(attackSpeed, attackSpeed, motorEnable);
+        }
       }else if (lLineVal == 1 and rLineVal == 1){
-        controlarMotores(-50, -50, motorEnable);
-        delay(300);
-      }else if (lLineVal == 1){
-        controlarMotores(230,40,motorEnable);
-      }else if (rLineVal == 1){
-        controlarMotores(40,230,motorEnable);
+        controlarMotores(-lineTurnSpeed, -lineTurnSpeed, motorEnable);
+        delay(durationTime);
+        if(random(1, 10) > 5){
+          controlarMotores(lineTurnSpeed, -lineTurnSpeed, motorEnable);
+          delay(durationTime);
+        }else{
+          controlarMotores(-lineTurnSpeed, lineTurnSpeed, motorEnable);
+          delay(durationTime);
+        }
+        controlarMotores(idleSpeed, idleSpeed, motorEnable);
+      }else if (lLineVal == 1 && rLineVal == 0){
+        controlarMotores(-lineTurnSpeed, -lineTurnSpeed, motorEnable);
+        delay(durationTime/2);
+        controlarMotores(lineTurnSpeed,-lineTurnSpeed,motorEnable);
+        delay(durationTime);
+        controlarMotores(idleSpeed, idleSpeed, motorEnable);
+      }else if (lLineVal == 0 && rLineVal == 1){
+        controlarMotores(-lineTurnSpeed, -lineTurnSpeed, motorEnable);
+        delay(durationTime/2);
+        controlarMotores(-lineTurnSpeed,lineTurnSpeed,motorEnable);
+        delay(durationTime);
+        controlarMotores(idleSpeed, idleSpeed, motorEnable);
       }
-      
-
     }else if(botStrategyNum == 2){
       flashLeds(CRGB::Purple, 5, 0);
       if(lDistanceVal == 1 && cDistanceVal == 1 && rDistanceVal == 1){
@@ -225,13 +263,13 @@ void loop() {
       leds[1] = CRGB::White;
     }else{
       leds[0] = CRGB::Black;
-      leds[1] = CRGB::White;
+      leds[1] = CRGB::Black;
     }
     if(rLineVal){
       leds[2] = CRGB::White;
       leds[3] = CRGB::White;
     }else{
-      leds[2] = CRGB::White;
+      leds[2] = CRGB::Black;
       leds[3] = CRGB::Black;
     }
 
@@ -375,7 +413,7 @@ void loop() {
 
 void lerSensoresDistancia(){
   int analogFactor = 16; // Para transformar a resolução 12 bits para 8 bits
-  int minSafeVal = 100;
+  int minSafeVal = 50;
 
   //lDistanceVal = constrain((6762/(analogRead(lDistancePin)-9))-4, 0, maxDistanceVal);
   //cDistanceVal = constrain((6762/(analogRead(cDistancePin)-9))-4, 0, maxDistanceVal);
@@ -436,7 +474,6 @@ void lerSensoresLinha(){
     }
   }
 }
-
 void calibrarSensoresLinha(){
   // #### Calibrar parte interna da arena.
   // Variáveis para calibrar.
