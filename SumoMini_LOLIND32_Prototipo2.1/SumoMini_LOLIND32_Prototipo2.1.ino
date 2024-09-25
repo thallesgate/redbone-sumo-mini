@@ -69,6 +69,7 @@ int idleSpeed = 30;     // Velocidade padrão sem deteccao
 int turnSpeed = 80;     // Velocidade de curva padrao
 int fastTurnSpeed = 100;
 int lineTurnSpeed = 125; // Velocidade de curva ao detectar a linha
+int breakSpeed = 180;
 int attackSpeed = 150;
 int lastDetection = 5;  // Ultima deteccao de inimigo
 int durationTime = 100; // Duração padrão de movimento
@@ -155,19 +156,19 @@ void loop() {
         }else if(lDistanceVal == 0 && cDistanceVal == 0 && rDistanceVal == 0){
           controlarMotores(idleSpeed, idleSpeed, motorEnable);
         }else if(lDistanceVal == 1 && cDistanceVal == 1 && rDistanceVal == 0){
-          controlarMotores(-turnSpeed/2, turnSpeed, motorEnable);
+          controlarMotores(turnSpeed/2, turnSpeed, motorEnable);
         }else if(lDistanceVal == 0 && cDistanceVal == 0 && rDistanceVal == 0){
           controlarMotores(idleSpeed, idleSpeed, motorEnable);
         }else if(lDistanceVal == 0 && cDistanceVal == 0 && rDistanceVal == 1){
-          controlarMotores(fastTurnSpeed, -fastTurnSpeed, motorEnable);
+          controlarMotores(fastTurnSpeed, 0, motorEnable);
         }else if(lDistanceVal == 1 && cDistanceVal == 0 && rDistanceVal == 0){
-          controlarMotores(-fastTurnSpeed, fastTurnSpeed, motorEnable);
+          controlarMotores(0, fastTurnSpeed, motorEnable);
         }else if(lDistanceVal == 0 && cDistanceVal == 1 && rDistanceVal == 0){
           controlarMotores(attackSpeed, attackSpeed, motorEnable);
         }
       }else if (lLineVal == 1 and rLineVal == 1){
-        controlarMotores(-lineTurnSpeed, -lineTurnSpeed, motorEnable);
-        delay(durationTime);
+        controlarMotores(-breakSpeed, -breakSpeed, motorEnable);
+        delay(durationTime*2);
         if(random(1, 10) > 5){
           controlarMotores(lineTurnSpeed, -lineTurnSpeed, motorEnable);
           delay(durationTime);
